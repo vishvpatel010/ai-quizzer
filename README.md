@@ -2,6 +2,10 @@
 
 This is a microservice for an AI Quizzer app that manages student quizzes and scores.
 
+## Video Tutorial Link
+
+https://drive.google.com/file/d/1xbs0pR0_IDok72ifrtRxSL-zrX_6kMlg/view?usp=sharing
+
 ## Setup
 
 1. Install dependencies:

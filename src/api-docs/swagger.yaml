@@ -1,0 +1,411 @@
+openapi: 3.0.0
+info:
+  title: Quiz API
+  version: 1.0.0
+  description: API for managing quizzes, including generation, submission, and retrieval of quiz history.
+
+servers:
+  - url: /api
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Username or email already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Error registering user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /auth/login:
+    post:
+      summary: Login a user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: access_token=abcde12345; HttpOnly
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Error logging in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /quiz/generate:
+    post:
+      summary: Generate a new quiz
+      tags:
+        - Quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grade:
+                  type: integer
+                  minimum: 1
+                  maximum: 12
+                  default: 5
+                subject:
+                  type: string
+                  default: maths
+                totalQuestions:
+                  type: integer
+                  maximum: 50
+                  default: 5
+                maxScore:
+                  type: integer
+                  default: 10
+                difficulty:
+                  type: string
+                  enum: [easy, medium, hard]
+                  default: medium
+      responses:
+        '200':
+          description: Successfully generated quiz
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quiz'
+        '500':
+          description: Error generating quiz
+  /quiz/submit:
+    post:
+      summary: Submit a completed quiz
+      tags:
+        - Quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quizId:
+                  type: string
+                responses:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      questionId: 
+                        type: string
+                      answer: 
+                        type: string
+                        enum: [A, B, C, D]
+      responses:
+        '200':
+          description: Successfully submitted quiz
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score:
+                    type: number
+                  correctAnswers:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Quiz not found
+        '500':
+          description: Error submitting quiz
+
+  /quiz/history:
+    post:
+      summary: Get quiz history
+      tags:
+        - Quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grade:
+                  type: integer
+                  default: 5
+                subject:
+                  type: string
+                  default: maths
+                minScore:
+                  type: number
+                maxScore:
+                  type: number
+                  default: 10
+                from:
+                  type: string
+                  format: date
+                  default: "2024-09-15"
+                to:
+                  type: string
+                  format: date
+                  default: "2024-09-16"
+      responses:
+        '200':
+          description: Successfully retrieved quiz history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Quiz'
+        '500':
+          description: Error fetching quiz history
+
+  /quiz/retry:
+    post:
+      summary: Retry a quiz
+      tags:
+        - Quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quizId:
+                  type: string
+                responses:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      questionId: 
+                        type: string
+                      answer: 
+                        type: string
+                        enum: [A, B, C, D]
+      responses:
+        '200':
+          description: Successfully retried quiz
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  score:
+                    type: number
+                  correctAnswers:
+                    type: array
+                    items:
+                      type: object
+                  newQuizId:
+                    type: string
+        '404':
+          description: Quiz not found
+        '500':
+          description: Error retrying quiz
+
+  /quiz/hint:
+    post:
+      summary: Get a hint for a quiz question
+      tags:
+        - Quiz
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quizId:
+                  type: string
+                questionId:
+                  type: string
+      responses:
+        '200':
+          description: Successfully retrieved hint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hint:
+                    type: string
+        '404':
+          description: Quiz or question not found
+        '500':
+          description: Error generating hint
+  
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Quiz:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        grade:
+          type: integer
+        subject:
+          type: string
+        maxScore:
+          type: integer
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              option:
+                type: array
+              correctAnswer:
+                type: string
+              hint:
+                type: string
+              marks:
+                type: integer
+        userAnswers:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId: 
+                type: string
+              userAnswer: 
+                type: string
+              correctAnswer: 
+                type: string
+        score:
+          type: number
+        completedDate:
+          type: string
+          format: date-time
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Unique identifier for the user (auto-generated)
+        username:
+          type: string
+          description: User's username
+        password:
+          type: string
+          description: User's hashed password
+        email:
+          type: string
+          format: email
+          description: User's email address
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of when the user was created
+        lastLogin:
+          type: string
+          format: date-time
+          description: Timestamp of the user's last login
+      required:
+        - username
+        - password
+        - email
